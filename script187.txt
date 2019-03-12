@@ -1,0 +1,62 @@
+#!/bin/bash
+p_hostname=`hostname -a` 2> /dev/null
+# Get distro
+p_distro=`python -c 'import platform ; print platform.linux_distribution()[0] + " " + platform.linux_distribution()[1]'` 2> /dev/null
+# Get uptime
+if [ -f "/proc/uptime" ]; then
+p_uptime=`cat /proc/uptime`
+p_uptime=${p_uptime%%.*}
+p_seconds=$(( p_uptime%60 ))
+p_minutes=$(( p_uptime/60%60 ))
+p_hours=$(( p_uptime/60/60%24 ))
+p_days=$(( p_uptime/60/60/24 ))
+p_uptime="$p_days days, $p_hours hours, $p_minutes minutes, $p_seconds seconds"
+else
+p_uptime=""
+fi
+#get ram usage
+#p_ram_free=`free -m | grep Mem | awk '{print $4}'`
+#p_ram_total=`free -m | grep Mem | awk '{print $2}'`
+# Total memory available
+p_ram_total=`free -m | head -2 |tail -1 |gawk '{print $2}'`
+# Total memory used
+p_ram_used=`free -m | head -3 |tail -1 |gawk '{print $3}'`
+# Calc total minus used# Calc total minus used
+p_ram_free=`expr $p_ram_total - $p_ram_used`
+#`free -m | head -2 |tail -1 |gawk '{print $2-$3}'`
+#get cpu usage
+p_cpu_usage=`grep 'cpu ' /proc/stat | awk '{usage=($2+$4)*100/($2+$4+$5)} END {print usage}'`
+#get diskspace available
+p_disk_percentage_used_root=`df --output=pcent /dev/sda1 | tr -dc '0-9'`
+p_disk_percentage_used_usr=`df --output=pcent /dev/sda5 | tr -dc '0-9'`
+
+##p_disk_percentage_used_home=`df --output=pcent /dev/sda7 | tr -dc '0-9'`
+##p_disk_percentage_used_var=`df --output=pcent /dev/sda9 | tr -dc '0-9'`
+##p_disk_percentage_used_tmp=`df --output=pcent /dev/sda6 | tr -dc '0-9'`
+#get postfix service status
+##p_service_postfix="no status available"
+##systemctl is-active postfix >/dev/null 2>&1 && p_service_postfix="running" || p_service_postfix="stopped"
+#get dovecot service status
+##p_service_dovecot="no status available"
+##systemctl is-active dovecot >/dev/null 2>&1 && p_service_dovecot="running" || p_service_dovecot="stopped"
+#get apache2 service status
+##p_service_apache2="no status available"
+##systemctl is-active apache2 >/dev/null 2>&1 && p_service_apache2="running" || p_service_apache2="stopped"
+##Get Number of HTTP Connections
+##p_http_connections=`netstat | grep http | wc -l`
+#get msql service status
+p_service_mysql="no status available"
+systemctl is-active mysql >/dev/null 2>&1 && p_service_mysql="running" || p_service_mysql="stopped"
+#Output System parameters as JSON string for monitoring
+echo "{
+\"hostname\":\""$p_hostname"\",
+\"distro\":\""$p_distro"\",
+\"uptime\":\""$p_uptime"\",
+\"ram_free\":\""$p_ram_free"\",
+\"ram_total\":\""$p_ram_total"\",
+\"current_cpu_usage\":\""$p_cpu_usage"\",
+\"disk_used_percentage_root\":\""$p_disk_percentage_used_root"\",
+\"disk_used_percentage_usr\":\""$p_disk_percentage_used_usr"\",
+\"status_service_mysql\":\""$p_service_mysql"\"
+}"
+#echo -e "{\"hostname\":\""$p_hostname"\", \"distro\":\""$p_distro"\", \"uptime\":\""$p_uptime"\"}"
